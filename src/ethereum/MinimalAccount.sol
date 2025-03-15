@@ -6,21 +6,22 @@ import {PackedUserOperation} from "@aa/contracts/interfaces/PackedUserOperation.
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from "@aa/contracts/interfaces/ValidationData.sol";
+import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from "@aa/contracts/core/Helpers.sol";
 import {IEntryPoint} from "@aa/contracts/interfaces/IEntryPoint.sol";
 
 // Our minimal version of an EOA smart account with ERC-4337 contracts
 contract MinimalAccount is IAccount, Ownable {
-	  /*//////////////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
     error MinimalAccount__NotFromEntryPoint();
-		error MinimalAccount__NotFromEntryPointOrOwner();
-		error MinimalAccount__ExecutionFailed(bytes);
-
+    error MinimalAccount__NotFromEntryPointOrOwner();
+    error MinimalAccount__ExecutionFailed(bytes);
+    error MinimalAccount__PrefundFailed(bytes);
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
+
     IEntryPoint private immutable i_entryPoint;
 
     /*//////////////////////////////////////////////////////////////
@@ -33,12 +34,12 @@ contract MinimalAccount is IAccount, Ownable {
         _;
     }
 
-		modifier requireFromEntryPointOrOwner() {
-			if (msg.sender != address(i_entryPoint) && msg.sender != owner()) {
-				revert MinimalAccount__NotFromEntryPointOrOwner();
-			}
-			_;
-		}
+    modifier requireFromEntryPointOrOwner() {
+        if (msg.sender != address(i_entryPoint) && msg.sender != owner()) {
+            revert MinimalAccount__NotFromEntryPointOrOwner();
+        }
+        _;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                FUNCTIONS
@@ -47,21 +48,21 @@ contract MinimalAccount is IAccount, Ownable {
         i_entryPoint = IEntryPoint(entryPoint);
     }
 
-		// Accept funds in order to pay for transactions (since no paymaster)
-		// Alt mempool will send txn, pull funds from here, and they are payed in _payPrefund, so we will need to be able to supply funds to this account to do so.
-		receive() external payable {}
+    // Accept funds in order to pay for transactions (since no paymaster)
+    // Alt mempool will send txn, pull funds from here, and they are payed in _payPrefund, so we will need to be able to supply funds to this account to do so.
+    receive() external payable {}
 
-		/*//////////////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
                            EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-`
-		// A simple execute function that allows the account to call arbitrary contracts
-		function execute(address dest, uint256 value, bytes calldata functionData) external requireFromEntryPointOrOwner {
-			(bool success, bytes memory result) = dest.call{value: value}(functionData);
-			if (!success) {
-				revert MinimalAccount__ExecutionFailed(result);
-			}
-		}
+
+    // A simple execute function that allows the account to call arbitrary contracts
+    function execute(address dest, uint256 value, bytes calldata functionData) external requireFromEntryPointOrOwner {
+        (bool success, bytes memory result) = dest.call{value: value}(functionData);
+        if (!success) {
+            revert MinimalAccount__ExecutionFailed(result);
+        }
+    }
 
     // Entrypoint -> will call -> this function
     function validateUserOp(
@@ -108,8 +109,11 @@ contract MinimalAccount is IAccount, Ownable {
     // Pay the paymaster or entrypoint for gas deposit
     function _payPrefund(uint256 missingAccountFunds) internal {
         if (missingAccountFunds != 0) {
-            (bool success, _) = payable(msg.sender).call{value: missingAccountFunds, gas: type(uint256).max}("");
-            (success);
+            (bool success, bytes memory _result) =
+                payable(msg.sender).call{value: missingAccountFunds, gas: type(uint256).max}("");
+            if (!success) {
+                revert MinimalAccount__PrefundFailed(_result);
+            }
         }
     }
 
