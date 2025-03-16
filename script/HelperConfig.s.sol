@@ -28,7 +28,7 @@ contract HelperConfig is Script {
     address constant BURNER_WALLET = 0xD6FfB3479F78876956880D1666299610eDd6DF56;
     NetworkConfig public localNetworkConfig;
     mapping(uint256 chainId => NetworkConfig) public networkConfigs;
-		// See https://github.com/foundry-rs/forge-std/blob/master/src/Base.sol#L19
+    // See https://github.com/foundry-rs/forge-std/blob/master/src/Base.sol#L19
     address constant FOUNDRY_DEFAULT_WALLET = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
 
     /*//////////////////////////////////////////////////////////////
@@ -70,7 +70,7 @@ contract HelperConfig is Script {
             return localNetworkConfig;
         }
 
-      	return NetworkConfig({entryPoint: address(0), account: FOUNDRY_DEFAULT_WALLET });
+        return NetworkConfig({entryPoint: address(0), account: FOUNDRY_DEFAULT_WALLET});
 
         // Deploy a mock entry point contract
         // vm.startBroadcast();
