@@ -89,6 +89,7 @@ contract MinimalAccount is IAccount, Ownable {
     // userOpHash is EIP-191 version of the signed hash
     function _validateSignature(PackedUserOperation calldata userOp, bytes32 userOpHash)
         internal
+        view
         returns (uint256 validationData)
     {
         // Convert from the incoming EIP-191 version of the signed hash back into a personal_sign message hash
