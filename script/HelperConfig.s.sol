@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Script} from "forge-std/Script.sol";
+import {Script, console2} from "forge-std/Script.sol";
+import {EntryPoint} from "@aa/contracts/core/EntryPoint.sol";
 
 // @todo: turn this into a package for re-use across foundry projects
 
@@ -30,6 +31,7 @@ contract HelperConfig is Script {
     mapping(uint256 chainId => NetworkConfig) public networkConfigs;
     // See https://github.com/foundry-rs/forge-std/blob/master/src/Base.sol#L19
     address constant FOUNDRY_DEFAULT_WALLET = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
+    address constant ANVIL_DEFAULT_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
     /*//////////////////////////////////////////////////////////////
                                FUNCTIONS
@@ -39,11 +41,11 @@ contract HelperConfig is Script {
         networkConfigs[ZKSYNC_SEPOLIA_CHAIN_ID] = getZkSyncSepoliaConfig();
     }
 
-    function getConfig() public view returns (NetworkConfig memory) {
+    function getConfig() public returns (NetworkConfig memory) {
         return getConfigByChainId(block.chainid);
     }
 
-    function getConfigByChainId(uint256 chainId) public view returns (NetworkConfig memory) {
+    function getConfigByChainId(uint256 chainId) public returns (NetworkConfig memory) {
         if (chainId == LOCAL_CHAIN_ID) {
             return getOrCreateAnvilEthConfig();
         } else if (networkConfigs[chainId].account != address(0)) {
@@ -65,18 +67,18 @@ contract HelperConfig is Script {
         return NetworkConfig({entryPoint: address(0), account: BURNER_WALLET});
     }
 
-    function getOrCreateAnvilEthConfig() public view returns (NetworkConfig memory) {
+    function getOrCreateAnvilEthConfig() public returns (NetworkConfig memory) {
         if (localNetworkConfig.account != address(0)) {
             return localNetworkConfig;
         }
 
-        return NetworkConfig({entryPoint: address(0), account: FOUNDRY_DEFAULT_WALLET});
+        console2.log("Deploying mock entry point");
+        vm.startBroadcast(ANVIL_DEFAULT_ACCOUNT);
+        EntryPoint entryPoint = new EntryPoint();
+        vm.stopBroadcast();
 
-        // Deploy a mock entry point contract
-        // vm.startBroadcast();
-        // EntryPoint entryPoint = new EntryPoint();
-        // vm.stopBroadcast();
+        localNetworkConfig = NetworkConfig({entryPoint: address(entryPoint), account: ANVIL_DEFAULT_ACCOUNT});
 
-        // return NetworkConfig({entryPoint: address(entryPoint), account: BURNER_WALLET});
+        return localNetworkConfig;
     }
 }

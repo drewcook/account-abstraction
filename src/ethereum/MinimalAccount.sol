@@ -18,10 +18,10 @@ contract MinimalAccount is IAccount, Ownable {
     error MinimalAccount__NotFromEntryPointOrOwner();
     error MinimalAccount__ExecutionFailed(bytes);
     error MinimalAccount__PrefundFailed(bytes);
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-
     IEntryPoint private immutable i_entryPoint;
 
     /*//////////////////////////////////////////////////////////////

@@ -15,7 +15,7 @@ contract DeployMinimalAccount is Script {
         vm.startBroadcast(config.account);
         minimalAccount = new MinimalAccount(config.entryPoint);
         // Doubly ensure that ownership is to the deployer, in this case the config.account
-        minimalAccount.transferOwnership(msg.sender);
+        minimalAccount.transferOwnership(config.account);
         vm.stopBroadcast();
 
         return (helperConfig, minimalAccount);
